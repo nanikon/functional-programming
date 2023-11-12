@@ -1,0 +1,46 @@
+name: Lab of functional programmint BUILD and TEST
+
+on: [push]
+
+jobs: 
+  lab1:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Go to folder
+        run:
+          cd lab1
+
+      - name: Cache depends
+        uses: actions/cache@v3.2.5
+        with: 
+          path: |
+            ~/.stack
+            .stack-work
+            /home/runner/.local/bin
+          key: ${{ runner.os }}-haskell-stack-${{ hashFiles('**/stack.yaml', '**/package.yaml') }}
+
+      - name: Install stack
+        uses: haskell/actions/setup@2.5.3
+        with: 
+          enable-stack: true
+          stack-no-global: true
+          stack-version: "latest"
+
+      - name: Install hlint
+        uses: haskell/actions/hlint-setup@v2.4.8
+
+      - name: Run hlint
+        uses: haskell/actions/hlint-run@v2.4.8
+        with:
+          path: .
+          fail-on: warning
+      
+      - name: Run fourmolu
+        uses: haskell/actions/run-fourmolu@v.9
+      
+      - name: Build and Test
+        run: stack build --test --coverage
+
+      - name: Coverage report
+        run: stack hcp report lab1
