@@ -37,7 +37,7 @@ jobs:
           fail-on: warning
       
       - name: Run fourmolu
-        uses: haskell-actions/run-fourmolu@v.9
+        uses: haskell-actions/run-fourmolu@v9
       
       - name: Build and Test
         run: stack build --test --coverage
