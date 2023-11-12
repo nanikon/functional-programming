@@ -7,9 +7,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Go to folder
-        run:
-          cd lab1
 
       - name: Cache depends
         uses: actions/cache@v3.2.5
@@ -33,14 +30,16 @@ jobs:
       - name: Run hlint
         uses: haskell-actions/hlint-run@v2.4.8
         with:
-          path: .
+          path: lab1
           fail-on: warning
       
       - name: Run fourmolu
         uses: haskell-actions/run-fourmolu@v9
+        with:
+          pattern: lab1/**/*.hs
       
       - name: Build and Test
-        run: stack build --test --coverage
+        run: cd lab1 && stack build --test --coverage
 
       - name: Coverage report
-        run: stack hcp report lab1
+        run: cd lab1 && stack hpc report lab1
