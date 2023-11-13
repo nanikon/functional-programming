@@ -65,7 +65,7 @@ groupBy13 [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13] = [[x1, x2, x
 groupBy13 (x1 : x2 : x3 : x4 : x5 : x6 : x7 : x8 : x9 : x10 : x11 : x12 : x13 : xs) = [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13] : groupBy13 (x2 : x3 : x4 : x5 : x6 : x7 : x8 : x9 : x10 : x11 : x12 : x13 : xs)
 
 multiplyInnerList :: [[Int]] -> [Int]
-multiplyInnerList = foldr (\v a -> product v : a) []
+multiplyInnerList = foldl (\v a -> product a : v) []
 
 task8Special :: [Int] -> Int
 task8Special = maximum . multiplyInnerList . groupBy13
