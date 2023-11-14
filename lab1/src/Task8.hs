@@ -3,6 +3,8 @@ module Task8 (
     task8_TailRec,
     task8Special,
     task8Map,
+    groupByNFold,
+    filterShortElem,
 ) where
 
 -- Non-tail recursion
@@ -48,31 +50,33 @@ task8_TailRec = maxMult 0
 
 -- module version with speshial functions
 
-groupBy13 :: [Int] -> [[Int]]
-groupBy13 [] = error "List must have 13 elements"
-groupBy13 [_] = error "List must have 13 elements"
-groupBy13 [_, _] = error "List must have 13 elements"
-groupBy13 [_, _, _] = error "List must have 13 elements"
-groupBy13 [_, _, _, _] = error "List must have 13 elements"
-groupBy13 [_, _, _, _, _] = error "List must have 13 elements"
-groupBy13 [_, _, _, _, _, _] = error "List must have 13 elements"
-groupBy13 [_, _, _, _, _, _, _] = error "List must have 13 elements"
-groupBy13 [_, _, _, _, _, _, _, _] = error "List must have 13 elements"
-groupBy13 [_, _, _, _, _, _, _, _, _] = error "List must have 13 elements"
-groupBy13 [_, _, _, _, _, _, _, _, _, _] = error "List must have 13 elements"
-groupBy13 [_, _, _, _, _, _, _, _, _, _, _] = error "List must have 13 elements"
-groupBy13 [_, _, _, _, _, _, _, _, _, _, _, _] = error "List must have 13 elements"
-groupBy13 [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13] = [[x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13]]
-groupBy13 (x1 : x2 : x3 : x4 : x5 : x6 : x7 : x8 : x9 : x10 : x11 : x12 : x13 : xs) = [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13] : groupBy13 (x2 : x3 : x4 : x5 : x6 : x7 : x8 : x9 : x10 : x11 : x12 : x13 : xs)
+groupByNFold :: Int -> [Int] -> [[Int]]
+groupByNFold n =
+    foldr
+        ( \el acc ->
+            case acc of
+                (_ : _) ->
+                    foldr
+                        ( \curList newList ->
+                            if length curList < n then (el : curList) : newList else curList : newList
+                        )
+                        [[el]]
+                        acc
+                _ -> [[el]]
+        )
+        []
+
+filterShortElem :: Int -> [[Int]] -> [[Int]]
+filterShortElem n = filter (\x -> length x >= n)
 
 filterWithout0 :: [[Int]] -> [[Int]]
 filterWithout0 = filter (notElem 0)
 
 multiplyInnerList :: [[Int]] -> [Int]
-multiplyInnerList = foldl (\v a -> product a : v) []
+multiplyInnerList = foldl (\acc el -> product el : acc) []
 
 task8Special :: [Int] -> Int
-task8Special = maximum . multiplyInnerList . filterWithout0 . groupBy13
+task8Special = maximum . multiplyInnerList . filterWithout0 . filterShortElem 13 . groupByNFold 13
 
 -- version with map
 
