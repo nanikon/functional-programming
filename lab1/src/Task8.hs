@@ -2,7 +2,7 @@ module Task8 (
     task8Recursion,
     task8_TailRec,
     task8Special,
-    task8Map
+    task8Map,
 ) where
 
 -- Non-tail recursion
