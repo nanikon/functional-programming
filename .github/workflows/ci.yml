@@ -55,4 +55,4 @@ jobs:
       - name: Test python version
         run: |
           pip install pytest
-          pytest task8.py
+          pytest lab1/task8.py
