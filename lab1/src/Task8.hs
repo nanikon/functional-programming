@@ -2,6 +2,7 @@ module Task8 (
     task8Recursion,
     task8_TailRec,
     task8Special,
+    task8Map,
 ) where
 
 -- Non-tail recursion
@@ -64,8 +65,22 @@ groupBy13 [_, _, _, _, _, _, _, _, _, _, _, _] = error "List must have 13 elemen
 groupBy13 [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13] = [[x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13]]
 groupBy13 (x1 : x2 : x3 : x4 : x5 : x6 : x7 : x8 : x9 : x10 : x11 : x12 : x13 : xs) = [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13] : groupBy13 (x2 : x3 : x4 : x5 : x6 : x7 : x8 : x9 : x10 : x11 : x12 : x13 : xs)
 
+filterWithout0 :: [[Int]] -> [[Int]]
+filterWithout0 = filter (notElem 0)
+
 multiplyInnerList :: [[Int]] -> [Int]
 multiplyInnerList = foldl (\v a -> product a : v) []
 
 task8Special :: [Int] -> Int
-task8Special = maximum . multiplyInnerList . groupBy13
+task8Special = maximum . multiplyInnerList . filterWithout0 . groupBy13
+
+-- version with map
+
+groupByNMap :: Int -> [Int] -> [[Int]]
+groupByNMap n list =
+    if n > length list
+        then error "List must have more or equal n elements"
+        else map (\x -> take n (drop x list)) [0 .. length list - n]
+
+task8Map :: [Int] -> Int
+task8Map = maximum . map product . groupByNMap 13

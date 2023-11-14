@@ -13,6 +13,7 @@ testTask8 =
         [ "recursion" ~: "Task8Recursion(input) = result" ~: result ~=? task8Recursion input
         , "tail recursion" ~: "Task8_TailRec(input) = result" ~: result ~=? task8_TailRec input
         , "special func" ~: "Task8Special(input) = result" ~: result ~=? task8Special input
+        , "use map" ~: "Task8Map(input) = result" ~: result ~=? task8Map input
         ]
 testTask23 = TestList ["tail recursion" ~: "Task8_TailRec(input) = result" ~: result ~=? task8_TailRec input]
 tests =
