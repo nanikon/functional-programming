@@ -3,6 +3,7 @@ module Task8 (
     task8_TailRec,
     task8Special,
     task8Map,
+    task8Iterate,
 ) where
 
 -- Non-tail recursion
@@ -86,3 +87,8 @@ groupByNMap n list =
 
 task8Map :: [Int] -> Int
 task8Map = maximum . map product . groupByNMap 13
+
+-- version with lazy compution
+
+task8Iterate :: [Int] -> Int
+task8Iterate list = maximum (take (length list - 13) [product (take 13 (drop x list)) | x <- [0 ..]])

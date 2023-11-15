@@ -20,8 +20,13 @@ testTask8 =
         , "tail recursion" ~: "Task8_TailRec(input) = result" ~: result8 ~=? task8_TailRec input8
         , "special func" ~: "Task8Special(input) = result" ~: result8 ~=? task8Special input8
         , "use map" ~: "Task8Map(input) = result" ~: result8 ~=? task8Map input8
+        , "use lazy" ~: "Task8Iterate(input) = result" ~: result8 ~=? task8Iterate input8
         ]
-testTask23 = TestList ["special func" ~: "Task23Spec(input) = result" ~: result23 ~=? task23Spec input23]
+testTask23 =
+    TestList
+        [ "special func" ~: "Task23Spec(input) = result" ~: result23 ~=? task23Spec input23
+        , "use lazy" ~: "Task23Lazy(input) = result" ~: result23 ~=? task23Lazy input23
+        ]
 tests =
     TestList
         [ TestLabel "Task8" testTask8
