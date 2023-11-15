@@ -25,6 +25,7 @@ testTask8 =
 testTask23 =
     TestList
         [ "special func" ~: "Task23Spec(input) = result" ~: result23 ~=? task23Spec input23
+        , "use map" ~: "Task23Map(input) = result" ~: result23 ~=? task23Map input23
         , "use lazy" ~: "Task23Lazy(input) = result" ~: result23 ~=? task23Lazy input23
         ]
 tests =
