@@ -63,14 +63,7 @@ isSumAbMap n = any (\k -> isAbundantMap (n - k)) [x | x <- [1 .. n - 1], isAbund
 
 task23Map :: Int -> Int
 task23Map limit =
-    sum $
-        map
-            ( \x ->
-                if not (isSumAbMap x)
-                    then x
-                    else 0
-            )
-            [1 .. limit]
+    sum $ filter (not . isSumAbMap) [1 .. limit]
 
 -- version with lazy computing
 
