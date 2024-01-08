@@ -15,13 +15,11 @@ divisionSum :: Int -> Int
 divisionSum n =
     foldr
         ( \x acc ->
-            let t = n `div` x
-             in if n `mod` x == 0
-                    then
-                        if x == t
-                            then acc + x
-                            else acc + x + t
-                    else acc
+            case n `mod` x of
+                0 -> if x * x == n
+                    then acc + x
+                    else acc + x + n
+                _ -> acc
         )
         1
         [2 .. intSqrt n]
@@ -43,12 +41,10 @@ divisionsByMap n =
         : map
             ( \x ->
                 let t = n `div` x
-                 in if n `mod` x == 0
-                        then
-                            if x == t
-                                then x
-                                else x + t
-                        else 0
+                 in case (x, n `mod` x) of
+                        (t, 0) -> x
+                        (_, 0) -> x + t
+                        (_, _) -> 0
             )
             [2 .. intSqrt n]
 

@@ -56,3 +56,44 @@ jobs:
         run: |
           pip install pytest
           pytest lab1/solution.py
+  
+  lab2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache depends
+        uses: actions/cache@v3.2.5
+        with: 
+          path: |
+            ~/.stack
+            .stack-work
+            /home/runner/.local/bin
+          key: ${{ runner.os }}-haskell-stack-${{ hashFiles('**/stack.yaml', '**/package.yaml') }}
+
+      - name: Install stack
+        uses: haskell-actions/setup@v2.5.3
+        with: 
+          enable-stack: true
+          stack-no-global: true
+          stack-version: "latest"
+
+      - name: Install hlint
+        uses: haskell-actions/hlint-setup@v2.4.8
+
+      - name: Run hlint
+        uses: haskell-actions/hlint-run@v2.4.8
+        with:
+          path: lab2
+          fail-on: warning
+      
+      - name: Run fourmolu
+        uses: haskell-actions/run-fourmolu@v9
+        with:
+          pattern: lab2/**/*.hs
+      
+      - name: Build and Test
+        run: cd lab2 && stack build --test --coverage
+
+      - name: Coverage report
+        run: cd lab2 && stack hpc report lab2
