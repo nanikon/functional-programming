@@ -16,9 +16,10 @@ divisionSum n =
     foldr
         ( \x acc ->
             case n `mod` x of
-                0 -> if x * x == n
-                    then acc + x
-                    else acc + x + n
+                0 ->
+                    if x * x == n
+                        then acc + x
+                        else acc + x + n
                 _ -> acc
         )
         1
