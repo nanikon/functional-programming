@@ -3,6 +3,9 @@ module Lib (
     createHashMap,
     deleteElem,
     getElem,
+    getSize,
+    getCurrentFilled,
+    filledHashMap,
 ) where
 
 import Data.Hashable
@@ -28,6 +31,12 @@ getElem :: (Hashable a) => SepChainHashMap a b -> a -> Maybe b
 -- mapHasMap :: (Hashable a, Hashable c) => (Elem a b -> Elem c d) -> SepChainHashMap a b -> SepChainHashMap c d
 -- foldlHashMap :: (Hashable a) => (Elem a b -> Elem a b -> Elem a b) -> SepChainHashMap a b -> Elem a b
 -- foldrHashMap :: (Hashable a) => (Elem a b -> Elem a b -> Elem a b) -> SepChainHashMap a b -> Elem a b
+
+getSize :: SepChainHashMap a b -> Int -- element count
+getSize hM = sum (map length (dataHashMap hM))
+
+getCurrentFilled :: (Eq a, Eq b) => SepChainHashMap a b -> Double
+getCurrentFilled hM = fromIntegral (length (filter (/= []) (dataHashMap hM))) / fromIntegral (length (dataHashMap hM))
 
 -- instance Semigroup (SepChainHashMap a b) where
 --    (<>) = mergeTwoMap
