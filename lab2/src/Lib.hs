@@ -7,6 +7,7 @@ module Lib (
 
 import Data.Hashable
 import qualified Data.List as DL
+import Data.Ord ()
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
@@ -19,7 +20,7 @@ data SepChainHashMap a b = SepChainHashMap
     , dataHashMap :: [Bucket a b]
     }
 
-createHashMap :: (Hashable a) => Double -> [(a, b)] -> SepChainHashMap a b
+createHashMap :: (Hashable a, Ord a) => Double -> [(a, b)] -> SepChainHashMap a b
 -- addElem :: (Hashable a) => SepChainHashMap a b -> a -> b -> SepChainHashMap a b
 deleteElem :: (Hashable a) => SepChainHashMap a b -> a -> SepChainHashMap a b
 getElem :: (Hashable a) => SepChainHashMap a b -> a -> Maybe b
@@ -36,14 +37,22 @@ getElem :: (Hashable a) => SepChainHashMap a b -> a -> Maybe b
 
 -- mergeTwoMap :: (Hashable a) => SepChainHashMap a b -> SepChainHashMap a b -> SepChainHashMap a b
 
+-- utils
+
 shortHash :: (Hashable a) => a -> Int -> Int
 shortHash key len = hash key `mod` len
 
-shortHashElem :: (Hashable a) => (a, b) -> Int -> Int
-shortHashElem e = shortHash (fst e)
+shortHashElem :: (Hashable a) => Int -> (a, b) -> Int
+shortHashElem len e = shortHash (fst e) len
 
 shortHashElemFromHeadBucket :: (Hashable a) => [Bucket a b] -> Int -> Int
-shortHashElemFromHeadBucket data_ = shortHashElem (head (head data_))
+shortHashElemFromHeadBucket data_ len = shortHashElem len (head (head data_))
+
+compareRes :: (Ord b) => (a -> b) -> a -> a -> Ordering
+compareRes fun x y = compare (fun x) (fun y)
+
+equalRes :: (Ord b) => (a -> b) -> a -> a -> Bool
+equalRes fun x y = compareRes fun x y == EQ
 
 -- createMap
 getLenForHalfFilled :: Double -> Int -> Int
@@ -51,14 +60,16 @@ getLenForHalfFilled filled size = ceiling $ fromIntegral (2 * size) / filled
 
 createHashMap filled pairs
     | (filled <= 0) || (filled >= 1) = error "Filled must be in (0; 1)"
-    | otherwise = SepChainHashMap filled (makeHashMapData (getLenForHalfFilled filled (length pairs)) pairs)
+    | otherwise = SepChainHashMap filled (makeHashMapData (getLenForHalfFilled filled (length pairs)) (deleteDublicates pairs))
   where
-    makeHashMapData len data_ = fillProbels [] 0 len (DL.groupBy (\x y -> shortHashElem x len == shortHashElem y len) data_)
+    makeHashMapData len data_ = fillProbels [] 0 len (groupAndSortByHash len data_)
     fillProbels result curMod len input
         | curMod == len = reverse result
         | null input = reverse result ++ replicate (len - curMod) []
         | curMod == shortHashElemFromHeadBucket input len = fillProbels (head input : result) (curMod + 1) len (tail input)
         | otherwise = fillProbels ([] : result) (curMod + 1) len input
+    deleteDublicates = DL.nubBy (equalRes fst)
+    groupAndSortByHash len xs = DL.sortBy (compareRes (fst . head)) (DL.groupBy (equalRes (shortHashElem len)) xs)
 
 -- getElem
 getNeededBucket :: (Hashable a) => SepChainHashMap a b -> a -> [(Int, Bucket a b)]
