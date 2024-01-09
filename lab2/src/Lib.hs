@@ -1,8 +1,12 @@
 module Lib (
     someFunc,
+    createHashMap,
+    deleteElem,
+    getElem,
 ) where
 
 import Data.Hashable
+import qualified Data.List as DL
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
@@ -15,6 +19,7 @@ data SepChainHashMap a b = SepChainHashMap
     , dataHashMap :: [Bucket a b]
     }
 
+createHashMap :: (Hashable a) => Double -> [(a, b)] -> SepChainHashMap a b
 -- addElem :: (Hashable a) => SepChainHashMap a b -> a -> b -> SepChainHashMap a b
 deleteElem :: (Hashable a) => SepChainHashMap a b -> a -> SepChainHashMap a b
 getElem :: (Hashable a) => SepChainHashMap a b -> a -> Maybe b
@@ -31,19 +36,43 @@ getElem :: (Hashable a) => SepChainHashMap a b -> a -> Maybe b
 
 -- mergeTwoMap :: (Hashable a) => SepChainHashMap a b -> SepChainHashMap a b -> SepChainHashMap a b
 
--- getElem 
+shortHash :: (Hashable a) => a -> Int -> Int
+shortHash key len = hash key `mod` len
+
+shortHashElem :: (Hashable a) => (a, b) -> Int -> Int
+shortHashElem e = shortHash (fst e)
+
+shortHashElemFromHeadBucket :: (Hashable a) => [Bucket a b] -> Int -> Int
+shortHashElemFromHeadBucket data_ = shortHashElem (head (head data_))
+
+-- createMap
+getLenForHalfFilled :: Double -> Int -> Int
+getLenForHalfFilled filled size = ceiling $ fromIntegral (2 * size) / filled
+
+createHashMap filled pairs
+    | (filled <= 0) || (filled >= 1) = error "Filled must be in (0; 1)"
+    | otherwise = SepChainHashMap filled (makeHashMapData (getLenForHalfFilled filled (length pairs)) pairs)
+  where
+    makeHashMapData len data_ = fillProbels [] 0 len (DL.groupBy (\x y -> shortHashElem x len == shortHashElem y len) data_)
+    fillProbels result curMod len input
+        | curMod == len = reverse result
+        | null input = reverse result ++ replicate (len - curMod) []
+        | curMod == shortHashElemFromHeadBucket input len = fillProbels (head input : result) (curMod + 1) len (tail input)
+        | otherwise = fillProbels ([] : result) (curMod + 1) len input
+
+-- getElem
 getNeededBucket :: (Hashable a) => SepChainHashMap a b -> a -> [(Int, Bucket a b)]
-getNeededBucket hM key = filter (\b -> fst b == hash key `mod` length (dataHashMap hM)) (zip [0 ..] (dataHashMap hM))
+getNeededBucket hM key = filter (\b -> fst b == shortHash key (length (dataHashMap hM))) (zip [0 ..] (dataHashMap hM))
 
 getNeededElem :: (Hashable a) => [Elem a b] -> a -> [(Int, Elem a b)]
-getNeededElem b key = filter (\e -> fst (snd e) == key) (zip [0..] b)
+getNeededElem b key = filter (\e -> fst (snd e) == key) (zip [0 ..] b)
 
 getElem hM key =
     case getNeededBucket hM key of
         [] -> Nothing
-        (_, b):_ -> case getNeededElem b key of
+        (_, b) : _ -> case getNeededElem b key of
             [] -> Nothing
-            (_,(_, v)) : _ -> Just v
+            (_, (_, v)) : _ -> Just v
 
 -- deleteElem
 
@@ -59,4 +88,4 @@ getListAfterElem list n = take (length list - n - 1) . drop (n + 1) $ list
 deleteElem hM key =
     case getNeededBucket hM key of
         [] -> hM
-        (number, b):_ -> SepChainHashMap (filledHashMap hM) (take number (dataHashMap hM) ++ deleteElemFromBucket b key:getListAfterElem (dataHashMap hM) number)
+        (number, b) : _ -> SepChainHashMap (filledHashMap hM) (take number (dataHashMap hM) ++ deleteElemFromBucket b key : getListAfterElem (dataHashMap hM) number)
