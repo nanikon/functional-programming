@@ -37,7 +37,6 @@ filterHashMap :: ((a, b) -> Bool) -> SepChainHashMap a b -> SepChainHashMap a b
 mapHashMap :: (Hashable c, Ord c) => (Elem a b -> Elem c d) -> SepChainHashMap a b -> SepChainHashMap c d
 foldlHashMap :: (c -> Elem a b -> c) -> c -> SepChainHashMap a b -> c
 foldrHashMap :: (Elem a b -> c -> c) -> c -> SepChainHashMap a b -> c
-
 getSize :: SepChainHashMap a b -> Int -- element count
 getSize hM = sum (map length (dataHashMap hM))
 
