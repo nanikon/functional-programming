@@ -1,8 +1,10 @@
 module Lib (
     someFunc,
+    SepChainHashMap,
     createHashMap,
     deleteElem,
     getElem,
+    addElem,
     getSize,
     getCurrentFilled,
     filledHashMap,
@@ -24,7 +26,7 @@ data SepChainHashMap a b = SepChainHashMap
     }
 
 createHashMap :: (Hashable a, Ord a) => Double -> [(a, b)] -> SepChainHashMap a b
--- addElem :: (Hashable a) => SepChainHashMap a b -> a -> b -> SepChainHashMap a b
+addElem :: (Hashable a, Ord a, Eq b) => SepChainHashMap a b -> a -> b -> SepChainHashMap a b
 deleteElem :: (Hashable a) => SepChainHashMap a b -> a -> SepChainHashMap a b
 getElem :: (Hashable a) => SepChainHashMap a b -> a -> Maybe b
 -- filterHashMap :: (Hashable a) => (a -> b -> Bool) -> SepChainHashMap a b -> SepChainHashMap a b
@@ -38,10 +40,16 @@ getSize hM = sum (map length (dataHashMap hM))
 getCurrentFilled :: (Eq a, Eq b) => SepChainHashMap a b -> Double
 getCurrentFilled hM = fromIntegral (length (filter (/= []) (dataHashMap hM))) / fromIntegral (length (dataHashMap hM))
 
--- instance Semigroup (SepChainHashMap a b) where
+instance (Eq a, Eq b) => Eq (SepChainHashMap a b) where
+    (==) x y = (filledHashMap x == filledHashMap y) && (dataHashMap x == dataHashMap y)
+
+instance (Show a, Show b) => Show (SepChainHashMap a b) where
+    show x = "{ " ++ show (filledHashMap x) ++ " - " ++ show (dataHashMap x) ++ "}"
+
+-- instance (Hashable a, Ord a) => Semigroup (SepChainHashMap a b) where
 --    (<>) = mergeTwoMap
 
--- instance Monoid (SepChainHashMap a b) where
+-- instance (Hashable a, Ord a) => Monoid (SepChainHashMap a b) where
 --    mempty = SepChainHashMap 0 []
 
 -- mergeTwoMap :: (Hashable a) => SepChainHashMap a b -> SepChainHashMap a b -> SepChainHashMap a b
@@ -63,6 +71,9 @@ compareRes fun x y = compare (fun x) (fun y)
 equalRes :: (Ord b) => (a -> b) -> a -> a -> Bool
 equalRes fun x y = compareRes fun x y == EQ
 
+getListAfterElem :: [a] -> Int -> [a]
+getListAfterElem list n = take (length list - n - 1) . drop (n + 1) $ list
+
 -- createMap
 getLenForHalfFilled :: Double -> Int -> Int
 getLenForHalfFilled filled size = ceiling $ fromIntegral (2 * size) / filled
@@ -81,6 +92,7 @@ createHashMap filled pairs
     groupAndSortByHash len xs = DL.sortBy (compareRes (fst . head)) (DL.groupBy (equalRes (shortHashElem len)) xs)
 
 -- getElem
+
 getNeededBucket :: (Hashable a) => SepChainHashMap a b -> a -> [(Int, Bucket a b)]
 getNeededBucket hM key = filter (\b -> fst b == shortHash key (length (dataHashMap hM))) (zip [0 ..] (dataHashMap hM))
 
@@ -89,23 +101,41 @@ getNeededElem b key = filter (\e -> fst (snd e) == key) (zip [0 ..] b)
 
 getElem hM key =
     case getNeededBucket hM key of
-        [] -> Nothing
+        [] -> Nothing -- not possible
         (_, b) : _ -> case getNeededElem b key of
             [] -> Nothing
             (_, (_, v)) : _ -> Just v
+
+-- addElem
+
+addElemWithoutCheckFill :: (Hashable a) => SepChainHashMap a b -> a -> b -> SepChainHashMap a b
+addElemWithoutCheckFill hM key value =
+    let (number, b) = case getNeededBucket hM key of
+            [] -> error "Internal error: can't found bucket"
+            a : _ -> a
+        d = dataHashMap hM
+        newB = case b of
+            [] -> [(key, value)]
+            _ -> case getNeededElem b key of
+                [] -> (key, value) : b
+                (numberElem, (_, _)) : _ -> take numberElem b ++ (key, value) : getListAfterElem b numberElem
+     in SepChainHashMap (filledHashMap hM) (take number d ++ newB : getListAfterElem d number)
+
+checkFillAndExpand :: (Hashable a, Ord a, Eq b) => SepChainHashMap a b -> SepChainHashMap a b
+checkFillAndExpand hM
+    | getCurrentFilled hM >= filledHashMap hM = createHashMap (filledHashMap hM) (concat . dataHashMap $ hM)
+    | otherwise = hM
+
+addElem hM key value = checkFillAndExpand $ addElemWithoutCheckFill hM key value
 
 -- deleteElem
 
 deleteElemFromBucket :: (Hashable a) => Bucket a b -> a -> Bucket a b
 deleteElemFromBucket b key = case getNeededElem b key of
     [] -> b
-    [(number, _)] -> take number b ++ getListAfterElem b number
-    _ -> error "Not exclusive key"
-
-getListAfterElem :: [a] -> Int -> [a]
-getListAfterElem list n = take (length list - n - 1) . drop (n + 1) $ list
+    (number, (_, _)) : _ -> take number b ++ getListAfterElem b number
 
 deleteElem hM key =
     case getNeededBucket hM key of
-        [] -> hM
+        [] -> hM -- not possible
         (number, b) : _ -> SepChainHashMap (filledHashMap hM) (take number (dataHashMap hM) ++ deleteElemFromBucket b key : getListAfterElem (dataHashMap hM) number)
