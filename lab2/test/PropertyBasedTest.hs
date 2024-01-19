@@ -28,7 +28,7 @@ propertyBasedTests =
                         assertEqual ("add elem with key" ++ show e) True (getCurrentFilled newMap < filledHashMap newMap)
                         return newMap
                     )
-                    (createHashMap 0.8 [('a', 1 :: Int)])
-                    ['b' .. 'z']
-            assertEqual "result size" 26 (getSize result)
+                    (createHashMap 0.8 [('A', 1 :: Int)])
+                    ['B' .. 'z']
+            assertEqual "result size" 58 (getSize result)
         ]

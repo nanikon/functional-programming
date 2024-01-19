@@ -153,3 +153,110 @@ deleteElem hM key =
     let (number, b) = getNeededBucket hM key
      in SepChainHashMap (filledHashMap hM) (take number (dataHashMap hM) ++ deleteElemFromBucket b key : getListAfterElem (dataHashMap hM) number)
 ```
+
+**Функции высшего порядка**
+
+Фильтрация - отображаю список бакетов через фильтрацию пар в каждом
+
+```haskell
+filterHashMap cond hM = SepChainHashMap (filledHashMap hM) (map (filter cond) (dataHashMap hM))
+```
+
+Отображение - создаю новую хэшмапу с тем же коэффициентом заполнености, а в качестве данных - отображенные пары.
+
+```haskell
+mapHashMap func hM = createHashMap (filledHashMap hM) (concatMap (map func) . dataHashMap $ hM)
+```
+
+Свертки - сворачиваю все пары, для левой - по очереди начиная с бакета, соответствующего наименьшему хэшу, для правой - наоборот.
+
+```haskell
+foldlHashMap func startAcc = foldl (foldl func) startAcc . dataHashMap
+
+foldrHashMap func startAcc = foldr (flip (foldr func)) startAcc . dataHashMap
+mapHashMap func hM = createHashMap (filledHashMap hM) (concatMap (map func) . dataHashMap $ hM)
+```
+
+**Unit тестирование**
+
+Есть набор тестов на каждую функцию - при каждой следующей я считаю что предыдущая работает корректно и её можно использовать для тестирования. Плюс две заранее созданные хэшмапы, где в одной - два значения лежат в разных бакетах, а в другой - в одном.
+
+```haskell
+hMDiffHash = createHashMap 0.8 [('a', '1'), ('b', '2')]
+hMSameHash = createHashMap 0.8 [('a', '1'), ('f', '2')]
+
+testCreate =
+    TestList
+        [ "current filled less then inited" ~: True ~=? 0.8 >= getCurrentFilled (createHashMap 0.8 [('b', "a"), ('a', "a")])
+        , "remove dublicates key" ~: 1 ~=? getSize (createHashMap 0.8 [('a', '1'), ('a', '2')])
+        , "don't remove dublicates hash" ~: 2 ~=? getSize (createHashMap 0.8 [('a', '1'), ('f', '2')])
+        , "two elem with same hash key not change fill" ~: 2 * getCurrentFilled (createHashMap 0.8 [('a', '1'), ('f', '2')]) ~=? getCurrentFilled (createHashMap 0.8 [('a', '1'), ('b', '2')])
+        ]
+testGet =
+    TestList
+        [ "can get elem with exists key" ~: Just '1' ~=? getElem hMDiffHash 'a'
+        , "can get correct elem then two key has same hash" ~: True ~=? (getElem hMSameHash 'a' == Just '1') && (getElem hMSameHash 'f' == Just '2')
+        , "can't get elem with not exists key" ~: Nothing ~=? getElem hMDiffHash 'c'
+        , "can't get elem with not exists key but exists key hash" ~: Nothing ~=? getElem hMDiffHash 'f'
+        ]
+testDelete =
+    TestList
+        [ "can delete elem with exists key" ~: 1 ~=? getSize (deleteElem hMDiffHash 'a')
+        , "can't get elem after delete it" ~: Nothing ~=? getElem (deleteElem hMDiffHash 'a') 'a'
+        , "can delete correct elem then two key has same hash" ~: Nothing ~=? getElem (deleteElem hMSameHash 'a') 'a'
+        , "map not changed when delete elem with not exists key" ~: hMSameHash ~=? deleteElem hMSameHash 'b'
+        , "map not changed when delete elem with not exists key but exists key hash" ~: hMDiffHash ~=? deleteElem hMDiffHash 'f'
+        ]
+testAdd =
+    TestList
+        [ "can add elem with new key" ~: getSize hMDiffHash + 1 ~=? getSize (addElem hMDiffHash 'c' '3')
+        , "can get added elem" ~: Just '3' ~=? getElem (addElem hMDiffHash 'c' '3') 'c'
+        , "replace value when add elem with exist key" ~: Just '3' ~=? getElem (addElem hMDiffHash 'b' '3') 'b'
+        , "change filled then add elem with diff hash key" ~: 2 * getCurrentFilled hMSameHash ~=? getCurrentFilled (addElem hMSameHash 'c' '3')
+        , "not change filled then add elem with same hash key" ~: getCurrentFilled hMDiffHash ~=? getCurrentFilled (addElem hMDiffHash 'f' '3')
+        , "change bucket count then filled overflow" ~: True ~=? (getCurrentFilled (addElem hMDiffHash 'c' '3') > getCurrentFilled (addElem (addElem hMDiffHash 'c' '3') 'd' '4'))
+        ]
+testFilter =
+    TestList
+        ["filter hashMap" ~: hMDiffHash ~=? filterHashMap (\a -> fst a == 'a' || snd a == '2') (addElem (addElem hMDiffHash 'f' '3') 'c' '4')]
+testMap =
+    TestList
+        ["map key to string and double, value to int" ~: createHashMap 0.8 [("aa", 1 :: Int), ("bb", 2 :: Int)] ~=? mapHashMap (\(a, b) -> ([a, a], ord b - ord '0')) hMDiffHash]
+testFold =
+    TestList
+        [ "left fold" ~: "b2a1" ~=? foldlHashMap (\acc (a, b) -> a : b : acc) "" hMDiffHash
+        , "right fold" ~: "a1b2" ~=? foldrHashMap (\(a, b) acc -> a : b : acc) "" hMDiffHash
+        ]
+```
+
+**Property-based тестирование**
+
+Для тестирования я выделила следующие свойства:
+- ассоциативность бинарной операции моноида (полугруппы);
+- нулевой элемент моноида - бинарная операция с ним для любого другого элемента возращает этот самый элемент;
+- коммутативность бинарной операции с нулевым элементом;
+- текущая заполненность хэшмапы не превышает максимальной заполненности.
+
+```haskell
+fistHM = createHashMap 0.8 [('a', 1), ('b', 1)]
+secondHM = createHashMap 0.8 [('c', 2), ('d', 2)]
+thirdHM = createHashMap 0.6 [('e', 3), ('f', 3)]
+
+propertyBasedTests =
+    TestList
+        [ "binary operation must be associative" ~: ((fistHM <> secondHM) <> thirdHM) ~=? (fistHM <> (secondHM <> thirdHM))
+        , "binary operation with empty must not change map" ~: fistHM ~=? fistHM <> mempty
+        , "bianry operation with empty must be commutative" ~: fistHM <> mempty ~=? mempty <> fistHM
+        , "current filled must be less then inited" ~: do
+            result <-
+                foldM
+                    ( \acc e -> do
+                        let newMap = addElem acc e (1 :: Int)
+                        assertEqual ("add elem with key" ++ show e) True (getCurrentFilled newMap < filledHashMap newMap)
+                        return newMap
+                    )
+                    (createHashMap 0.8 [('A', 1 :: Int)])
+                    ['B' .. 'z']
+            assertEqual "result size" 58 (getSize result)
+        ]
+```
