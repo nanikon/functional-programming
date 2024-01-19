@@ -9,13 +9,14 @@ hMSameHash, hMDiffHash :: SepChainHashMap Char Char
 hMDiffHash = createHashMap 0.8 [('a', '1'), ('b', '2')]
 hMSameHash = createHashMap 0.8 [('a', '1'), ('f', '2')]
 
-testCreate, testGet, testDelete, testAdd, unitTests :: Test
+testCreate, testGet, testDelete, testAdd, testFilter, unitTests :: Test
 unitTests =
     TestList
         [ TestLabel "test createHashMap" testCreate
         , TestLabel "test getElem" testGet
         , TestLabel "test deleteElem" testDelete
         , TestLabel "test addElem" testAdd
+        , TestLabel "test filterHashMap" testFilter
         ]
 testCreate =
     TestList
@@ -48,3 +49,6 @@ testAdd =
         , "not change filled then add elem with same hash key" ~: getCurrentFilled hMDiffHash ~=? getCurrentFilled (addElem hMDiffHash 'f' '3')
         , "change bucket count then filled overflow" ~: True ~=? (getCurrentFilled (addElem hMDiffHash 'c' '3') > getCurrentFilled (addElem (addElem hMDiffHash 'c' '3') 'd' '4'))
         ]
+testFilter =
+    TestList
+        ["filter hashMap" ~: hMDiffHash ~=? filterHashMap (\a -> fst a == 'a' || snd a == '2') (addElem (addElem hMDiffHash 'f' '3') 'c' '4')]

@@ -5,6 +5,7 @@ module Lib (
     deleteElem,
     getElem,
     addElem,
+    filterHashMap,
     getSize,
     getCurrentFilled,
     filledHashMap,
@@ -29,7 +30,7 @@ createHashMap :: (Hashable a, Ord a) => Double -> [(a, b)] -> SepChainHashMap a 
 addElem :: (Hashable a, Ord a, Eq b) => SepChainHashMap a b -> a -> b -> SepChainHashMap a b
 deleteElem :: (Hashable a) => SepChainHashMap a b -> a -> SepChainHashMap a b
 getElem :: (Hashable a) => SepChainHashMap a b -> a -> Maybe b
--- filterHashMap :: (Hashable a) => (a -> b -> Bool) -> SepChainHashMap a b -> SepChainHashMap a b
+filterHashMap :: ((a, b) -> Bool) -> SepChainHashMap a b -> SepChainHashMap a b
 -- mapHasMap :: (Hashable a, Hashable c) => (Elem a b -> Elem c d) -> SepChainHashMap a b -> SepChainHashMap c d
 -- foldlHashMap :: (Hashable a) => (Elem a b -> Elem a b -> Elem a b) -> SepChainHashMap a b -> Elem a b
 -- foldrHashMap :: (Hashable a) => (Elem a b -> Elem a b -> Elem a b) -> SepChainHashMap a b -> Elem a b
@@ -140,3 +141,7 @@ deleteElem hM key =
     case getNeededBucket hM key of
         [] -> hM -- not possible
         (number, b) : _ -> SepChainHashMap (filledHashMap hM) (take number (dataHashMap hM) ++ deleteElemFromBucket b key : getListAfterElem (dataHashMap hM) number)
+
+-- filterHashMap
+
+filterHashMap cond hM = SepChainHashMap (filledHashMap hM) (map (filter cond) (dataHashMap hM))
