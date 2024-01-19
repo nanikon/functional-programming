@@ -7,6 +7,7 @@ module Lib (
     addElem,
     filterHashMap,
     mapHashMap,
+    foldlHashMap,
     getSize,
     getCurrentFilled,
     filledHashMap,
@@ -33,7 +34,7 @@ deleteElem :: (Hashable a) => SepChainHashMap a b -> a -> SepChainHashMap a b
 getElem :: (Hashable a) => SepChainHashMap a b -> a -> Maybe b
 filterHashMap :: ((a, b) -> Bool) -> SepChainHashMap a b -> SepChainHashMap a b
 mapHashMap :: (Hashable c, Ord c) => (Elem a b -> Elem c d) -> SepChainHashMap a b -> SepChainHashMap c d
--- foldlHashMap :: (Hashable a) => (Elem a b -> Elem a b -> Elem a b) -> SepChainHashMap a b -> Elem a b
+foldlHashMap :: (c -> Elem a b -> c) -> c -> SepChainHashMap a b -> c
 -- foldrHashMap :: (Hashable a) => (Elem a b -> Elem a b -> Elem a b) -> SepChainHashMap a b -> Elem a b
 
 getSize :: SepChainHashMap a b -> Int -- element count
@@ -143,10 +144,14 @@ deleteElem hM key =
         [] -> hM -- not possible
         (number, b) : _ -> SepChainHashMap (filledHashMap hM) (take number (dataHashMap hM) ++ deleteElemFromBucket b key : getListAfterElem (dataHashMap hM) number)
 
--- filterHashMap
+-- filter
 
 filterHashMap cond hM = SepChainHashMap (filledHashMap hM) (map (filter cond) (dataHashMap hM))
 
--- mapHashMap
+-- map
 
 mapHashMap func hM = createHashMap (filledHashMap hM) (concatMap (map func) . dataHashMap $ hM)
+
+-- fold
+
+foldlHashMap func startAcc = foldl (foldl func) startAcc . dataHashMap

@@ -10,7 +10,7 @@ hMSameHash, hMDiffHash :: SepChainHashMap Char Char
 hMDiffHash = createHashMap 0.8 [('a', '1'), ('b', '2')]
 hMSameHash = createHashMap 0.8 [('a', '1'), ('f', '2')]
 
-testCreate, testGet, testDelete, testAdd, testFilter, testMap, unitTests :: Test
+testCreate, testGet, testDelete, testAdd, testFilter, testMap, testFold, unitTests :: Test
 unitTests =
     TestList
         [ TestLabel "test createHashMap" testCreate
@@ -19,6 +19,7 @@ unitTests =
         , TestLabel "test addElem" testAdd
         , TestLabel "test filterHashMap" testFilter
         , TestLabel "test mapHashMap" testMap
+        , TestLabel "test fold" testFold
         ]
 testCreate =
     TestList
@@ -57,3 +58,6 @@ testFilter =
 testMap =
     TestList
         ["map key to string and double, value to int" ~: createHashMap 0.8 [("aa", 1 :: Int), ("bb", 2 :: Int)] ~=? mapHashMap (\(a, b) -> ([a, a], ord b - ord '0')) hMDiffHash]
+testFold =
+    TestList
+        ["left fold" ~: "b2a1" ~=? foldlHashMap (\acc (a, b) -> a : b : acc) "" hMDiffHash]
