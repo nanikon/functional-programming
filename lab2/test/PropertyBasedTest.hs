@@ -25,7 +25,7 @@ propertyBasedTests =
                 foldM
                     ( \acc e -> do
                         let newMap = addElem acc e (1 :: Int)
-                        assertEqual ("add elem with key" ++ show e) True (getCurrentFilled newMap < 0.8)
+                        assertEqual ("add elem with key" ++ show e) True (getCurrentFilled newMap < filledHashMap newMap)
                         return newMap
                     )
                     (createHashMap 0.8 [('a', 1 :: Int)])
