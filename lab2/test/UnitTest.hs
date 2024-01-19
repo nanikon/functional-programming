@@ -60,4 +60,6 @@ testMap =
         ["map key to string and double, value to int" ~: createHashMap 0.8 [("aa", 1 :: Int), ("bb", 2 :: Int)] ~=? mapHashMap (\(a, b) -> ([a, a], ord b - ord '0')) hMDiffHash]
 testFold =
     TestList
-        ["left fold" ~: "b2a1" ~=? foldlHashMap (\acc (a, b) -> a : b : acc) "" hMDiffHash]
+        [ "left fold" ~: "b2a1" ~=? foldlHashMap (\acc (a, b) -> a : b : acc) "" hMDiffHash
+        , "right fold" ~: "a1b2" ~=? foldrHashMap (\(a, b) acc -> a : b : acc) "" hMDiffHash
+        ]

@@ -8,6 +8,7 @@ module Lib (
     filterHashMap,
     mapHashMap,
     foldlHashMap,
+    foldrHashMap,
     getSize,
     getCurrentFilled,
     filledHashMap,
@@ -35,7 +36,7 @@ getElem :: (Hashable a) => SepChainHashMap a b -> a -> Maybe b
 filterHashMap :: ((a, b) -> Bool) -> SepChainHashMap a b -> SepChainHashMap a b
 mapHashMap :: (Hashable c, Ord c) => (Elem a b -> Elem c d) -> SepChainHashMap a b -> SepChainHashMap c d
 foldlHashMap :: (c -> Elem a b -> c) -> c -> SepChainHashMap a b -> c
--- foldrHashMap :: (Hashable a) => (Elem a b -> Elem a b -> Elem a b) -> SepChainHashMap a b -> Elem a b
+foldrHashMap :: (Elem a b -> c -> c) -> c -> SepChainHashMap a b -> c
 
 getSize :: SepChainHashMap a b -> Int -- element count
 getSize hM = sum (map length (dataHashMap hM))
@@ -155,3 +156,5 @@ mapHashMap func hM = createHashMap (filledHashMap hM) (concatMap (map func) . da
 -- fold
 
 foldlHashMap func startAcc = foldl (foldl func) startAcc . dataHashMap
+
+foldrHashMap func startAcc = foldr (flip (foldr func)) startAcc . dataHashMap
