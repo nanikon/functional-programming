@@ -89,7 +89,7 @@ createHashMap filled pairs
         | curMod == shortHashElemFromHeadBucket input len = fillProbels (head input : result) (curMod + 1) len (tail input)
         | otherwise = fillProbels ([] : result) (curMod + 1) len input
     deleteDublicates = DL.nubBy (equalRes fst)
-    groupAndSortByHash len xs = DL.sortBy (compareRes (shortHashElem len . head)) (DL.groupBy (equalRes (shortHashElem len)) xs)
+    groupAndSortByHash len xs = DL.groupBy (equalRes (shortHashElem len)) (DL.sortBy (compareRes (shortHashElem len)) xs)
 
 -- getElem
 
