@@ -1,8 +1,13 @@
+import PropertyBasedTest
 import Test.HUnit
 import UnitTest
 
 tests :: Test
-tests = TestList [TestLabel "Unit test" unitTests]
+tests =
+    TestList
+        [ TestLabel "Unit test" unitTests
+        , TestLabel "PropertyBased test" propertyBasedTests
+        ]
 
 main :: IO ()
 main = do

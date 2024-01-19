@@ -46,13 +46,14 @@ instance (Eq a, Eq b) => Eq (SepChainHashMap a b) where
 instance (Show a, Show b) => Show (SepChainHashMap a b) where
     show x = "{ " ++ show (filledHashMap x) ++ " - " ++ show (dataHashMap x) ++ "}"
 
--- instance (Hashable a, Ord a) => Semigroup (SepChainHashMap a b) where
---    (<>) = mergeTwoMap
+instance (Hashable a, Ord a) => Semigroup (SepChainHashMap a b) where
+    (<>) x y = createHashMap (max (filledHashMap x) (filledHashMap y)) (concatData x ++ concatAndFilterData x y)
+      where
+        concatData = concat . dataHashMap
+        concatAndFilterData a = filter (\e -> fst e `notElem` map fst (concatData a)) . concatData
 
--- instance (Hashable a, Ord a) => Monoid (SepChainHashMap a b) where
---    mempty = SepChainHashMap 0 []
-
--- mergeTwoMap :: (Hashable a) => SepChainHashMap a b -> SepChainHashMap a b -> SepChainHashMap a b
+instance (Hashable a, Ord a) => Monoid (SepChainHashMap a b) where
+    mempty = SepChainHashMap 0 []
 
 -- utils
 
@@ -80,7 +81,7 @@ getLenForHalfFilled filled size = ceiling $ fromIntegral (2 * size) / filled
 
 createHashMap filled pairs
     | (filled <= 0) || (filled >= 1) = error "Filled must be in (0; 1)"
-    | otherwise = SepChainHashMap filled (makeHashMapData (getLenForHalfFilled filled (length pairs)) (deleteDublicates pairs))
+    | otherwise = SepChainHashMap filled (makeHashMapData (getLenForHalfFilled filled (length (deleteDublicates pairs))) (deleteDublicates pairs))
   where
     makeHashMapData len data_ = fillProbels [] 0 len (groupAndSortByHash len data_)
     fillProbels result curMod len input
@@ -89,7 +90,7 @@ createHashMap filled pairs
         | curMod == shortHashElemFromHeadBucket input len = fillProbels (head input : result) (curMod + 1) len (tail input)
         | otherwise = fillProbels ([] : result) (curMod + 1) len input
     deleteDublicates = DL.nubBy (equalRes fst)
-    groupAndSortByHash len xs = DL.sortBy (compareRes (fst . head)) (DL.groupBy (equalRes (shortHashElem len)) xs)
+    groupAndSortByHash len xs = DL.sortBy (compareRes (shortHashElem len . head)) (DL.groupBy (equalRes (shortHashElem len)) xs)
 
 -- getElem
 
