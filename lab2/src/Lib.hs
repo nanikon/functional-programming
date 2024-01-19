@@ -1,5 +1,4 @@
 module Lib (
-    someFunc,
     SepChainHashMap,
     createHashMap,
     deleteElem,
@@ -17,9 +16,6 @@ module Lib (
 import Data.Hashable
 import qualified Data.List as DL
 import Data.Ord ()
-
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
 
 type Elem a b = (a, b)
 
