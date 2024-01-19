@@ -2,6 +2,7 @@ module UnitTest (
     unitTests,
 ) where
 
+import Data.Char
 import Lib
 import Test.HUnit
 
@@ -9,7 +10,7 @@ hMSameHash, hMDiffHash :: SepChainHashMap Char Char
 hMDiffHash = createHashMap 0.8 [('a', '1'), ('b', '2')]
 hMSameHash = createHashMap 0.8 [('a', '1'), ('f', '2')]
 
-testCreate, testGet, testDelete, testAdd, testFilter, unitTests :: Test
+testCreate, testGet, testDelete, testAdd, testFilter, testMap, unitTests :: Test
 unitTests =
     TestList
         [ TestLabel "test createHashMap" testCreate
@@ -17,6 +18,7 @@ unitTests =
         , TestLabel "test deleteElem" testDelete
         , TestLabel "test addElem" testAdd
         , TestLabel "test filterHashMap" testFilter
+        , TestLabel "test mapHashMap" testMap
         ]
 testCreate =
     TestList
@@ -52,3 +54,6 @@ testAdd =
 testFilter =
     TestList
         ["filter hashMap" ~: hMDiffHash ~=? filterHashMap (\a -> fst a == 'a' || snd a == '2') (addElem (addElem hMDiffHash 'f' '3') 'c' '4')]
+testMap =
+    TestList
+        ["map key to string and double, value to int" ~: createHashMap 0.8 [("aa", 1 :: Int), ("bb", 2 :: Int)] ~=? mapHashMap (\(a, b) -> ([a, a], ord b - ord '0')) hMDiffHash]

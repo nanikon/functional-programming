@@ -6,6 +6,7 @@ module Lib (
     getElem,
     addElem,
     filterHashMap,
+    mapHashMap,
     getSize,
     getCurrentFilled,
     filledHashMap,
@@ -31,7 +32,7 @@ addElem :: (Hashable a, Ord a, Eq b) => SepChainHashMap a b -> a -> b -> SepChai
 deleteElem :: (Hashable a) => SepChainHashMap a b -> a -> SepChainHashMap a b
 getElem :: (Hashable a) => SepChainHashMap a b -> a -> Maybe b
 filterHashMap :: ((a, b) -> Bool) -> SepChainHashMap a b -> SepChainHashMap a b
--- mapHasMap :: (Hashable a, Hashable c) => (Elem a b -> Elem c d) -> SepChainHashMap a b -> SepChainHashMap c d
+mapHashMap :: (Hashable c, Ord c) => (Elem a b -> Elem c d) -> SepChainHashMap a b -> SepChainHashMap c d
 -- foldlHashMap :: (Hashable a) => (Elem a b -> Elem a b -> Elem a b) -> SepChainHashMap a b -> Elem a b
 -- foldrHashMap :: (Hashable a) => (Elem a b -> Elem a b -> Elem a b) -> SepChainHashMap a b -> Elem a b
 
@@ -145,3 +146,7 @@ deleteElem hM key =
 -- filterHashMap
 
 filterHashMap cond hM = SepChainHashMap (filledHashMap hM) (map (filter cond) (dataHashMap hM))
+
+-- mapHashMap
+
+mapHashMap func hM = createHashMap (filledHashMap hM) (concatMap (map func) . dataHashMap $ hM)
