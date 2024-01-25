@@ -70,7 +70,7 @@ getListAfterElem list n = take (length list - n - 1) . drop (n + 1) $ list
 
 -- createMap
 getLenForHalfFilled :: Double -> Int -> Int
-getLenForHalfFilled filled size = ceiling $ fromIntegral (2 * size) / filled
+getLenForHalfFilled filled size = ceiling $ fromIntegral (2 * max size 1) / filled
 
 createHashMap :: (Hashable a) => Double -> [(a, b)] -> SepChainHashMap a b
 createHashMap filled pairs
