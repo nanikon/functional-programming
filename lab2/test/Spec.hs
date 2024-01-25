@@ -1,4 +1,5 @@
 import PropertyBasedTest
+import System.Exit
 import Test.HUnit
 import UnitTest
 
@@ -12,4 +13,6 @@ tests =
 main :: IO ()
 main = do
     _ <- runTestTT tests
+    resultPBT <- and <$> sequence [runPropertyBasedTest]
+    _ <- if resultPBT then exitSuccess else exitFailure
     return ()

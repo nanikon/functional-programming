@@ -24,8 +24,8 @@ unitTests =
 testCreate =
     TestList
         [ "current filled less then inited" ~: True ~=? 0.8 >= getCurrentFilled (createHashMap 0.8 [('b', "a"), ('a', "a")])
-        , "remove dublicates key" ~: 1 ~=? getSize (createHashMap 0.8 [('a', '1'), ('a', '2')])
-        , "don't remove dublicates hash" ~: 2 ~=? getSize (createHashMap 0.8 [('a', '1'), ('f', '2')])
+        , "remove dublicates key" ~: 1 ~=? getSizeMap (createHashMap 0.8 [('a', '1'), ('a', '2')])
+        , "don't remove dublicates hash" ~: 2 ~=? getSizeMap (createHashMap 0.8 [('a', '1'), ('f', '2')])
         , "two elem with same hash key not change fill" ~: 2 * getCurrentFilled (createHashMap 0.8 [('a', '1'), ('f', '2')]) ~=? getCurrentFilled (createHashMap 0.8 [('a', '1'), ('b', '2')])
         ]
 testGet =
@@ -37,7 +37,7 @@ testGet =
         ]
 testDelete =
     TestList
-        [ "can delete elem with exists key" ~: 1 ~=? getSize (deleteElem hMDiffHash 'a')
+        [ "can delete elem with exists key" ~: 1 ~=? getSizeMap (deleteElem hMDiffHash 'a')
         , "can't get elem after delete it" ~: Nothing ~=? getElem (deleteElem hMDiffHash 'a') 'a'
         , "can delete correct elem then two key has same hash" ~: Nothing ~=? getElem (deleteElem hMSameHash 'a') 'a'
         , "map not changed when delete elem with not exists key" ~: hMSameHash ~=? deleteElem hMSameHash 'b'
@@ -45,7 +45,7 @@ testDelete =
         ]
 testAdd =
     TestList
-        [ "can add elem with new key" ~: getSize hMDiffHash + 1 ~=? getSize (addElem hMDiffHash 'c' '3')
+        [ "can add elem with new key" ~: getSizeMap hMDiffHash + 1 ~=? getSizeMap (addElem hMDiffHash 'c' '3')
         , "can get added elem" ~: Just '3' ~=? getElem (addElem hMDiffHash 'c' '3') 'c'
         , "replace value when add elem with exist key" ~: Just '3' ~=? getElem (addElem hMDiffHash 'b' '3') 'b'
         , "change filled then add elem with diff hash key" ~: 2 * getCurrentFilled hMSameHash ~=? getCurrentFilled (addElem hMSameHash 'c' '3')

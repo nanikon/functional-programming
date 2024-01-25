@@ -37,6 +37,7 @@ library:
   source-dirs: src
   dependencies:
   - hashable
+  - containers
 
 executables:
   lab2-exe:
@@ -60,3 +61,6 @@ tests:
     dependencies:
     - lab2
     - HUnit
+    - QuickCheck
+    - hashable
+    - test-invariant
