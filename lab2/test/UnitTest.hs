@@ -7,13 +7,10 @@ import Lib
 import Test.Tasty
 import Test.Tasty.HUnit
 
-hMSameHash, hMDiffHash :: SepChainHashMap Char Char
-hMDiffHash = createHashMap 0.8 [('a', '1'), ('b', '2')]
-hMSameHash = createHashMap 0.8 [('a', '1'), ('f', '2')]
-
 testCreate, testGet, testDelete, testAdd, testFilter, testMap, testFold, unitTests :: TestTree
 unitTests =
-    testGroup "Unit tests"
+    testGroup
+        "Unit tests"
         [ testCreate
         , testGet
         , testDelete
@@ -23,49 +20,112 @@ unitTests =
         , testFold
         ]
 testCreate =
-    testGroup "Test createHashMap"
+    testGroup
+        "Test createHashMap"
         [ testCase "current filled less then inited" $ do
             let initedFill = 0.8
             let hM = createHashMap initedFill [('b', "a"), ('a', "a")]
             getCurrentFilled hM <= initedFill @? "Current fill more than inited"
-        , testCase "remove dublicates key" $ do
-            let hM = createHashMap 0.8 [('a', '1'), ('a', '2')]
-            getSizeMap hM == 1 @? "Not remove dublicates key"
-        , testCase "don't remove dublicates hash" ~: 2 ~=? getSizeMap (createHashMap 0.8 [('a', '1'), ('f', '2')])
-        , testCase "two elem with same hash key not change fill" ~: 2 * getCurrentFilled (createHashMap 0.8 [('a', '1'), ('f', '2')]) ~=? getCurrentFilled (createHashMap 0.8 [('a', '1'), ('b', '2')])
+        , testCase "remove dublicates key" $ getSizeMap (createHashMap 0.8 [('a', '1'), ('a', '2')]) @?= 1
+        , testCase "don't remove dublicates hash" $ getSizeMap (createHashMap 0.8 [('a', '1'), ('f', '2')]) @?= 2
+        , testCase "two elem with same hash key not change fill" $ do
+            let sameHashHM = createHashMap 0.8 [('a', '1'), ('f', '2')]
+            let diffHashHM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            getCurrentFilled sameHashHM < getCurrentFilled diffHashHM @? "Not less filled where less buckets use"
         ]
 testGet =
-    testGroup "Test getElem"
-        [ testCase "can get elem with exists key" ~: Just '1' ~=? getElem hMDiffHash 'a'
-        , testCase "can get correct elem then two key has same hash" ~: True ~=? (getElem hMSameHash 'a' == Just '1') && (getElem hMSameHash 'f' == Just '2')
-        , testCase "can't get elem with not exists key" ~: Nothing ~=? getElem hMDiffHash 'c'
-        , testCase "can't get elem with not exists key but exists key hash" ~: Nothing ~=? getElem hMDiffHash 'f'
+    testGroup
+        "Test getElem"
+        [ testCase "can get elem with exists key" $ do
+            let diffHashHM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            getElem diffHashHM 'a' @?= Just '1'
+        , testCase "can get correct elem then two key has same hash" $ do
+            let sameHashHM = createHashMap 0.8 [('a', '1'), ('f', '2')]
+            getElem sameHashHM 'a' @?= Just '1'
+            getElem sameHashHM 'f' @?= Just '2'
+        , testCase "can't get elem with not exists key" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            getElem hM 'c' @?= Nothing
+            getElem hM 'f' @?= Nothing
         ]
 testDelete =
-    testGroup "Test deleteElem"
-        [ testCase "can delete elem with exists key" ~: 1 ~=? getSizeMap (deleteElem hMDiffHash 'a')
-        , testCase "can't get elem after delete it" ~: Nothing ~=? getElem (deleteElem hMDiffHash 'a') 'a'
-        , testCase "can delete correct elem then two key has same hash" ~: Nothing ~=? getElem (deleteElem hMSameHash 'a') 'a'
-        , testCase "map not changed when delete elem with not exists key" ~: hMSameHash ~=? deleteElem hMSameHash 'b'
-        , testCase "map not changed when delete elem with not exists key but exists key hash" ~: hMDiffHash ~=? deleteElem hMDiffHash 'f'
+    testGroup
+        "Test deleteElem"
+        [ testCase "can delete elem with exists key" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let deletedKey = 'a'
+            let deletedHM = deleteElem hM deletedKey
+            getSizeMap deletedHM < getSizeMap hM @? "Not change size"
+            getElem deletedHM deletedKey @?= Nothing
+        , testCase "can delete correct elem then two key has same hash" $ do
+            let sameHashHM = createHashMap 0.8 [('a', '1'), ('f', '2')]
+            let deletedKey = 'a'
+            getElem (deleteElem sameHashHM deletedKey) deletedKey @?= Nothing
+        , testCase "map not changed when delete elem with not exists key" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('f', '2')]
+            let deletedHM = deleteElem hM 'b'
+            deletedHM @?= hM
+        , testCase "map not changed when delete elem with not exists key but exists key hash" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let deletedHM = deleteElem hM 'f'
+            deletedHM @?= hM
         ]
 testAdd =
-    testGroup "Test addElem"
-        [ testCase "can add elem with new key" ~: getSizeMap hMDiffHash + 1 ~=? getSizeMap (addElem hMDiffHash 'c' '3')
-        , testCase "can get added elem" ~: Just '3' ~=? getElem (addElem hMDiffHash 'c' '3') 'c'
-        , testCase "replace value when add elem with exist key" ~: Just '3' ~=? getElem (addElem hMDiffHash 'b' '3') 'b'
-        , testCase "change filled then add elem with diff hash key" ~: 2 * getCurrentFilled hMSameHash ~=? getCurrentFilled (addElem hMSameHash 'c' '3')
-        , testCase "not change filled then add elem with same hash key" ~: getCurrentFilled hMDiffHash ~=? getCurrentFilled (addElem hMDiffHash 'f' '3')
-        , testCase "change bucket count then filled overflow" ~: True ~=? (getCurrentFilled (addElem hMDiffHash 'c' '3') > getCurrentFilled (addElem (addElem hMDiffHash 'c' '3') 'd' '4'))
+    testGroup
+        "Test addElem"
+        [ testCase "can add elem with new key" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let addedKey = 'c'
+            let addedValue = '3'
+            let addedHM = addElem hM addedKey addedValue
+            getSizeMap addedHM > getSizeMap hM @? "Not change size"
+            getElem addedHM addedKey @?= Just addedValue
+            getCurrentFilled addedHM > getCurrentFilled hM @? "Not change filled"
+        , testCase "can add elem with new key with same hash" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let addedKey = 'f'
+            let addedValue = '3'
+            let addedHM = addElem hM addedKey addedValue
+            getSizeMap addedHM > getSizeMap hM @? "Not change size"
+            getElem addedHM addedKey @?= Just addedValue
+            getCurrentFilled addedHM @?= getCurrentFilled hM
+        , testCase "replace value when add elem with exist key" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let addedKey = 'c'
+            let addedValue = '3'
+            let addedHM = addElem hM addedKey addedValue
+            getElem addedHM addedKey @?= Just addedValue
+        , testCase "change bucket count then filled overflow" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let addedHM = addElem hM 'c' '3'
+            let doubleAddedHM = addElem addedHM 'd' '4'
+            getCurrentFilled addedHM > getCurrentFilled doubleAddedHM @? "Not resize hashmap"
         ]
 testFilter =
-    testGroup "Test filterHashMap"
-        [ testCase "filter hashMap" ~: hMDiffHash ~=? filterHashMap (\a -> fst a == 'a' || snd a == '2') (addElem (addElem hMDiffHash 'f' '3') 'c' '4')]
+    testGroup
+        "Test filterHashMap"
+        [ testCase "filter hashMap" $ do
+            let firstHM = createHashMap 0.8 [('a', '1'), ('b', '2'), ('c', '3')]
+            let secondHM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let filteredHM = filterHashMap (\a -> fst a < 'c') firstHM
+            secondHM @?= filteredHM
+        ]
 testMap =
-    testGroup "Test mapHashMap"
-        [ testCase "map key to string and double, value to int" ~: createHashMap 0.8 [("aa", 1 :: Int), ("bb", 2 :: Int)] ~=? mapHashMap (\(a, b) -> ([a, a], ord b - ord '0')) hMDiffHash]
+    testGroup
+        "Test mapHashMap"
+        [ testCase "map key to string and double, value to int" $ do
+            let firstHM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let secondHM = createHashMap 0.8 [("aa", 1 :: Int), ("bb", 2 :: Int)]
+            let mappedHM = mapHashMap (\(a, b) -> ([a, a], ord b - ord '0')) firstHM
+            secondHM @?= mappedHM
+        ]
 testFold =
-    testGroup "Test foldHashMap"
-        [ testCase "left fold" ~: "b2a1" ~=? foldlHashMap (\acc (a, b) -> a : b : acc) "" hMDiffHash
-        , testCase "right fold" ~: "a1b2" ~=? foldrHashMap (\(a, b) acc -> a : b : acc) "" hMDiffHash
+    testGroup
+        "Test foldHashMap"
+        [ testCase "left fold iterate from min hash to max" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            foldlHashMap (\acc (a, b) -> a : b : acc) "" hM @?= "b2a1"
+        , testCase "right fold iterate from max hash to min" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            foldrHashMap (\(a, b) acc -> a : b : acc) "" hM @?= "a1b2"
         ]

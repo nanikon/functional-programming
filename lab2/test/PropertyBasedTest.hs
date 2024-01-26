@@ -9,8 +9,8 @@ module PropertyBasedTest (
 
 import Data.Hashable
 import Lib
-import Test.QuickCheck
 import Test.Invariant
+import Test.QuickCheck
 import Test.Tasty
 import Test.Tasty.QuickCheck (testProperty)
 
