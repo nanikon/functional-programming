@@ -60,7 +60,10 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - lab2
+    - hashable
     - HUnit
     - QuickCheck
-    - hashable
     - test-invariant
+    - tasty
+    - tasty-hunit
+    - tasty-quickcheck

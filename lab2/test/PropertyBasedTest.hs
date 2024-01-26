@@ -1,16 +1,20 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# HLINT ignore "Monoid law, right identity" #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module PropertyBasedTest (
-    runPropertyBasedTest,
+    -- runPropertyBasedTest,
+    propertyBasedTests,
 ) where
 
 import Data.Hashable
 import Lib
-import Test.Invariant
 import Test.QuickCheck
+import Test.Invariant
+import Test.Tasty
+import Test.Tasty.QuickCheck (testProperty)
+
+-- import Test.QuickCheck
 
 newtype TestSepChainHashMap a b = TestSCHM {unTestSCHM :: SepChainHashMap a b} deriving (Semigroup, Monoid, Eq, Show)
 
@@ -19,17 +23,27 @@ instance (Hashable a, Arbitrary a, Arbitrary b) => Arbitrary (TestSepChainHashMa
       where
         filled = choose (0.1, 0.9)
 
-prop_binaryOperationAssociative :: (Hashable a, Eq b) => TestSepChainHashMap a b -> TestSepChainHashMap a b -> TestSepChainHashMap a b -> Bool
-prop_binaryOperationAssociative = associative (<>)
+propertyBasedTests :: TestTree
+propertyBasedTests =
+    testGroup
+        "Property-based tests"
+        [ testProperty "binary operation is associative" (binOpAssociative :: TestSepChainHashMap Char Char -> TestSepChainHashMap Char Char -> TestSepChainHashMap Char Char -> Bool)
+        , testProperty "binary operation with mempty not change elem" (binOpWithEmptyNotChange :: TestSepChainHashMap Char Char -> Bool)
+        , testProperty "binary operation with mempty is commutative" (binWithEmptyCommutative :: TestSepChainHashMap Char Char -> Bool)
+        , testProperty "currentFilled always less than inited" (currentFilledLessInited :: TestSepChainHashMap Char Char -> NonEmptyList (Char, Char) -> Bool)
+        ]
 
-prop_binaryOperationWithEmptyNotChange :: (Hashable a, Eq b) => TestSepChainHashMap a b -> Bool
-prop_binaryOperationWithEmptyNotChange x = x == (x <> mempty)
+binOpAssociative :: (Hashable a, Eq b) => TestSepChainHashMap a b -> TestSepChainHashMap a b -> TestSepChainHashMap a b -> Bool
+binOpAssociative = associative (<>)
 
-prop_binaryOperationWithEmptyCommutative :: (Hashable a, Eq b) => TestSepChainHashMap a b -> Bool
-prop_binaryOperationWithEmptyCommutative = commutative (<>) mempty
+binOpWithEmptyNotChange :: (Hashable a, Eq b) => TestSepChainHashMap a b -> Bool
+binOpWithEmptyNotChange x = x == (x <> mempty)
 
-prop_currentFilledLessInited :: (Hashable a, Eq b) => TestSepChainHashMap a b -> NonEmptyList (a, b) -> Bool
-prop_currentFilledLessInited hM elems =
+binWithEmptyCommutative :: (Hashable a, Eq b) => TestSepChainHashMap a b -> Bool
+binWithEmptyCommutative = commutative (<>) mempty
+
+currentFilledLessInited :: (Hashable a, Eq b) => TestSepChainHashMap a b -> NonEmptyList (a, b) -> Bool
+currentFilledLessInited hM elems =
     snd $
         foldl
             ( \acc e ->
@@ -40,6 +54,6 @@ prop_currentFilledLessInited hM elems =
             (unTestSCHM hM, True)
             (getNonEmpty elems)
 
-return []
-runPropertyBasedTest :: IO Bool
-runPropertyBasedTest = $quickCheckAll
+-- return []
+-- runPropertyBasedTest :: IO Bool
+-- runPropertyBasedTest = $quickCheckAll
