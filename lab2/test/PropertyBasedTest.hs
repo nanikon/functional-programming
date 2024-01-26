@@ -3,7 +3,6 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module PropertyBasedTest (
-    -- runPropertyBasedTest,
     propertyBasedTests,
 ) where
 
@@ -13,8 +12,6 @@ import Test.Invariant
 import Test.QuickCheck
 import Test.Tasty
 import Test.Tasty.QuickCheck (testProperty)
-
--- import Test.QuickCheck
 
 newtype TestSepChainHashMap a b = TestSCHM {unTestSCHM :: SepChainHashMap a b} deriving (Semigroup, Monoid, Eq, Show)
 
@@ -53,7 +50,3 @@ currentFilledLessInited hM elems =
             )
             (unTestSCHM hM, True)
             (getNonEmpty elems)
-
--- return []
--- runPropertyBasedTest :: IO Bool
--- runPropertyBasedTest = $quickCheckAll

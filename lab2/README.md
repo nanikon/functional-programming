@@ -63,12 +63,12 @@ instance (Hashable a, Ord a) => Monoid (SepChainHashMap a b) where
 И последняя часть интерфейса - экспоритуемые функции
 
 ```haskell
-createHashMap :: (Hashable a, Ord a) => Double -> [(a, b)] -> SepChainHashMap a b
-addElem :: (Hashable a, Ord a, Eq b) => SepChainHashMap a b -> a -> b -> SepChainHashMap a b
+createHashMap :: (Hashable a) => Double -> [(a, b)] -> SepChainHashMap a b
+addElem :: (Hashable a, Eq b) => SepChainHashMap a b -> a -> b -> SepChainHashMap a b
 deleteElem :: (Hashable a) => SepChainHashMap a b -> a -> SepChainHashMap a b
 getElem :: (Hashable a) => SepChainHashMap a b -> a -> Maybe b
 filterHashMap :: ((a, b) -> Bool) -> SepChainHashMap a b -> SepChainHashMap a b
-mapHashMap :: (Hashable c, Ord c) => (Elem a b -> Elem c d) -> SepChainHashMap a b -> SepChainHashMap c d
+mapHashMap :: (Hashable c) => (Elem a b -> Elem c d) -> SepChainHashMap a b -> SepChainHashMap c d
 foldlHashMap :: (c -> Elem a b -> c) -> c -> SepChainHashMap a b -> c
 foldrHashMap :: (Elem a b -> c -> c) -> c -> SepChainHashMap a b -> c
 getSize :: SepChainHashMap a b -> Int 
@@ -133,7 +133,7 @@ addElemWithoutCheckFill hM key value =
                 (numberElem, (_, _)) : _ -> take numberElem b ++ (key, value) : getListAfterElem b numberElem
      in SepChainHashMap (filledHashMap hM) (take number d ++ newB : getListAfterElem d number)
 
-checkFillAndExpand :: (Hashable a, Ord a, Eq b) => SepChainHashMap a b -> SepChainHashMap a b
+checkFillAndExpand :: (Hashable a, Eq b) => SepChainHashMap a b -> SepChainHashMap a b
 checkFillAndExpand hM
     | getCurrentFilled hM >= filledHashMap hM = createHashMap (filledHashMap hM) (concat . dataHashMap $ hM)
     | otherwise = hM
@@ -179,57 +179,133 @@ mapHashMap func hM = createHashMap (filledHashMap hM) (concatMap (map func) . da
 
 **Unit тестирование**
 
-Есть набор тестов на каждую функцию - при каждой следующей я считаю что предыдущая работает корректно и её можно использовать для тестирования. Плюс две заранее созданные хэшмапы, где в одной - два значения лежат в разных бакетах, а в другой - в одном.
+Есть набор тестов на каждую функцию - при каждой следующей я считаю что предыдущая работает корректно и её можно использовать для тестирования. Они сгруппированны по проверяемым функциям.
 
 ```haskell
-hMDiffHash = createHashMap 0.8 [('a', '1'), ('b', '2')]
-hMSameHash = createHashMap 0.8 [('a', '1'), ('f', '2')]
-
 testCreate =
-    TestList
-        [ "current filled less then inited" ~: True ~=? 0.8 >= getCurrentFilled (createHashMap 0.8 [('b', "a"), ('a', "a")])
-        , "remove dublicates key" ~: 1 ~=? getSize (createHashMap 0.8 [('a', '1'), ('a', '2')])
-        , "don't remove dublicates hash" ~: 2 ~=? getSize (createHashMap 0.8 [('a', '1'), ('f', '2')])
-        , "two elem with same hash key not change fill" ~: 2 * getCurrentFilled (createHashMap 0.8 [('a', '1'), ('f', '2')]) ~=? getCurrentFilled (createHashMap 0.8 [('a', '1'), ('b', '2')])
+    testGroup
+        "Test createHashMap"
+        [ testCase "current filled less then inited" $ do
+            let initedFill = 0.8
+            let hM = createHashMap initedFill [('b', "a"), ('a', "a")]
+            getCurrentFilled hM <= initedFill @? "Current fill more than inited"
+        , testCase "remove dublicates key" $ getSizeMap (createHashMap 0.8 [('a', '1'), ('a', '2')]) @?= 1
+        , testCase "don't remove dublicates hash" $ getSizeMap (createHashMap 0.8 [('a', '1'), ('f', '2')]) @?= 2
+        , testCase "two elem with same hash key not change fill" $ do
+            let sameHashHM = createHashMap 0.8 [('a', '1'), ('f', '2')]
+            let diffHashHM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            getCurrentFilled sameHashHM < getCurrentFilled diffHashHM @? "Not less filled where less buckets use"
         ]
 testGet =
-    TestList
-        [ "can get elem with exists key" ~: Just '1' ~=? getElem hMDiffHash 'a'
-        , "can get correct elem then two key has same hash" ~: True ~=? (getElem hMSameHash 'a' == Just '1') && (getElem hMSameHash 'f' == Just '2')
-        , "can't get elem with not exists key" ~: Nothing ~=? getElem hMDiffHash 'c'
-        , "can't get elem with not exists key but exists key hash" ~: Nothing ~=? getElem hMDiffHash 'f'
+    testGroup
+        "Test getElem"
+        [ testCase "can get elem with exists key" $ do
+            let diffHashHM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            getElem diffHashHM 'a' @?= Just '1'
+        , testCase "can get correct elem then two key has same hash" $ do
+            let sameHashHM = createHashMap 0.8 [('a', '1'), ('f', '2')]
+            getElem sameHashHM 'a' @?= Just '1'
+            getElem sameHashHM 'f' @?= Just '2'
+        , testCase "can't get elem with not exists key" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            getElem hM 'c' @?= Nothing
+            getElem hM 'f' @?= Nothing
         ]
 testDelete =
-    TestList
-        [ "can delete elem with exists key" ~: 1 ~=? getSize (deleteElem hMDiffHash 'a')
-        , "can't get elem after delete it" ~: Nothing ~=? getElem (deleteElem hMDiffHash 'a') 'a'
-        , "can delete correct elem then two key has same hash" ~: Nothing ~=? getElem (deleteElem hMSameHash 'a') 'a'
-        , "map not changed when delete elem with not exists key" ~: hMSameHash ~=? deleteElem hMSameHash 'b'
-        , "map not changed when delete elem with not exists key but exists key hash" ~: hMDiffHash ~=? deleteElem hMDiffHash 'f'
+    testGroup
+        "Test deleteElem"
+        [ testCase "can delete elem with exists key" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let deletedKey = 'a'
+            let deletedHM = deleteElem hM deletedKey
+            getSizeMap deletedHM < getSizeMap hM @? "Not change size"
+            getElem deletedHM deletedKey @?= Nothing
+        , testCase "can delete correct elem then two key has same hash" $ do
+            let sameHashHM = createHashMap 0.8 [('a', '1'), ('f', '2')]
+            let deletedKey = 'a'
+            getElem (deleteElem sameHashHM deletedKey) deletedKey @?= Nothing
+        , testCase "map not changed when delete elem with not exists key" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('f', '2')]
+            let deletedHM = deleteElem hM 'b'
+            deletedHM @?= hM
+        , testCase "map not changed when delete elem with not exists key but exists key hash" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let deletedHM = deleteElem hM 'f'
+            deletedHM @?= hM
         ]
 testAdd =
-    TestList
-        [ "can add elem with new key" ~: getSize hMDiffHash + 1 ~=? getSize (addElem hMDiffHash 'c' '3')
-        , "can get added elem" ~: Just '3' ~=? getElem (addElem hMDiffHash 'c' '3') 'c'
-        , "replace value when add elem with exist key" ~: Just '3' ~=? getElem (addElem hMDiffHash 'b' '3') 'b'
-        , "change filled then add elem with diff hash key" ~: 2 * getCurrentFilled hMSameHash ~=? getCurrentFilled (addElem hMSameHash 'c' '3')
-        , "not change filled then add elem with same hash key" ~: getCurrentFilled hMDiffHash ~=? getCurrentFilled (addElem hMDiffHash 'f' '3')
-        , "change bucket count then filled overflow" ~: True ~=? (getCurrentFilled (addElem hMDiffHash 'c' '3') > getCurrentFilled (addElem (addElem hMDiffHash 'c' '3') 'd' '4'))
+    testGroup
+        "Test addElem"
+        [ testCase "can add elem with new key" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let addedKey = 'c'
+            let addedValue = '3'
+            let addedHM = addElem hM addedKey addedValue
+            getSizeMap addedHM > getSizeMap hM @? "Not change size"
+            getElem addedHM addedKey @?= Just addedValue
+            getCurrentFilled addedHM > getCurrentFilled hM @? "Not change filled"
+        , testCase "can add elem with new key with same hash" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let addedKey = 'f'
+            let addedValue = '3'
+            let addedHM = addElem hM addedKey addedValue
+            getSizeMap addedHM > getSizeMap hM @? "Not change size"
+            getElem addedHM addedKey @?= Just addedValue
+            getCurrentFilled addedHM @?= getCurrentFilled hM
+        , testCase "replace value when add elem with exist key" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let addedKey = 'c'
+            let addedValue = '3'
+            let addedHM = addElem hM addedKey addedValue
+            getElem addedHM addedKey @?= Just addedValue
+        , testCase "change bucket count then filled overflow" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let addedHM = addElem hM 'c' '3'
+            let doubleAddedHM = addElem addedHM 'd' '4'
+            getCurrentFilled addedHM > getCurrentFilled doubleAddedHM @? "Not resize hashmap"
         ]
 testFilter =
-    TestList
-        ["filter hashMap" ~: hMDiffHash ~=? filterHashMap (\a -> fst a == 'a' || snd a == '2') (addElem (addElem hMDiffHash 'f' '3') 'c' '4')]
+    testGroup
+        "Test filterHashMap"
+        [ testCase "filter hashMap" $ do
+            let firstHM = createHashMap 0.8 [('a', '1'), ('b', '2'), ('c', '3')]
+            let secondHM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let filteredHM = filterHashMap (\a -> fst a < 'c') firstHM
+            secondHM @?= filteredHM
+        ]
 testMap =
-    TestList
-        ["map key to string and double, value to int" ~: createHashMap 0.8 [("aa", 1 :: Int), ("bb", 2 :: Int)] ~=? mapHashMap (\(a, b) -> ([a, a], ord b - ord '0')) hMDiffHash]
+    testGroup
+        "Test mapHashMap"
+        [ testCase "map key to string and double, value to int" $ do
+            let firstHM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            let secondHM = createHashMap 0.8 [("aa", 1 :: Int), ("bb", 2 :: Int)]
+            let mappedHM = mapHashMap (\(a, b) -> ([a, a], ord b - ord '0')) firstHM
+            secondHM @?= mappedHM
+        ]
 testFold =
-    TestList
-        [ "left fold" ~: "b2a1" ~=? foldlHashMap (\acc (a, b) -> a : b : acc) "" hMDiffHash
-        , "right fold" ~: "a1b2" ~=? foldrHashMap (\(a, b) acc -> a : b : acc) "" hMDiffHash
+    testGroup
+        "Test foldHashMap"
+        [ testCase "left fold iterate from min hash to max" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            foldlHashMap (\acc (a, b) -> a : b : acc) "" hM @?= "b2a1"
+        , testCase "right fold iterate from max hash to min" $ do
+            let hM = createHashMap 0.8 [('a', '1'), ('b', '2')]
+            foldrHashMap (\(a, b) acc -> a : b : acc) "" hM @?= "a1b2"
         ]
 ```
 
 **Property-based тестирование**
+
+Для удобства генерации данных реализовала класс типов Arbitrary из библиотеки QuickCheck для обертки тестируемого типа, чтобы не добавлять в зависимости основного модуля тестовую библиотеку и чтобы не отключать предупреждение линтера.
+
+```haskell
+newtype TestSepChainHashMap a b = TestSCHM {unTestSCHM :: SepChainHashMap a b} deriving (Semigroup, Monoid, Eq, Show)
+
+instance (Hashable a, Arbitrary a, Arbitrary b) => Arbitrary (TestSepChainHashMap a b) where
+    arbitrary = TestSCHM <$> (createHashMap <$> filled <*> listOf arbitrary)
+      where
+        filled = choose (0.1, 0.9)
+```
 
 Для тестирования я выделила следующие свойства:
 - ассоциативность бинарной операции моноида (полугруппы);
@@ -238,25 +314,34 @@ testFold =
 - текущая заполненность хэшмапы не превышает максимальной заполненности.
 
 ```haskell
-fistHM = createHashMap 0.8 [('a', 1), ('b', 1)]
-secondHM = createHashMap 0.8 [('c', 2), ('d', 2)]
-thirdHM = createHashMap 0.6 [('e', 3), ('f', 3)]
-
+propertyBasedTests :: TestTree
 propertyBasedTests =
-    TestList
-        [ "binary operation must be associative" ~: ((fistHM <> secondHM) <> thirdHM) ~=? (fistHM <> (secondHM <> thirdHM))
-        , "binary operation with empty must not change map" ~: fistHM ~=? fistHM <> mempty
-        , "bianry operation with empty must be commutative" ~: fistHM <> mempty ~=? mempty <> fistHM
-        , "current filled must be less then inited" ~: do
-            result <-
-                foldM
-                    ( \acc e -> do
-                        let newMap = addElem acc e (1 :: Int)
-                        assertEqual ("add elem with key" ++ show e) True (getCurrentFilled newMap < filledHashMap newMap)
-                        return newMap
-                    )
-                    (createHashMap 0.8 [('A', 1 :: Int)])
-                    ['B' .. 'z']
-            assertEqual "result size" 58 (getSize result)
+    testGroup
+        "Property-based tests"
+        [ testProperty "binary operation is associative" (binOpAssociative :: TestSepChainHashMap Char Char -> TestSepChainHashMap Char Char -> TestSepChainHashMap Char Char -> Bool)
+        , testProperty "binary operation with mempty not change elem" (binOpWithEmptyNotChange :: TestSepChainHashMap Char Char -> Bool)
+        , testProperty "binary operation with mempty is commutative" (binWithEmptyCommutative :: TestSepChainHashMap Char Char -> Bool)
+        , testProperty "currentFilled always less than inited" (currentFilledLessInited :: TestSepChainHashMap Char Char -> NonEmptyList (Char, Char) -> Bool)
         ]
+
+binOpAssociative :: (Hashable a, Eq b) => TestSepChainHashMap a b -> TestSepChainHashMap a b -> TestSepChainHashMap a b -> Bool
+binOpAssociative = associative (<>)
+
+binOpWithEmptyNotChange :: (Hashable a, Eq b) => TestSepChainHashMap a b -> Bool
+binOpWithEmptyNotChange x = x == (x <> mempty)
+
+binWithEmptyCommutative :: (Hashable a, Eq b) => TestSepChainHashMap a b -> Bool
+binWithEmptyCommutative = commutative (<>) mempty
+
+currentFilledLessInited :: (Hashable a, Eq b) => TestSepChainHashMap a b -> NonEmptyList (a, b) -> Bool
+currentFilledLessInited hM elems =
+    snd $
+        foldl
+            ( \acc e ->
+                let newMap = uncurry (addElem (fst acc)) e
+                    checkFilled = getCurrentFilled newMap < filledHashMap newMap
+                 in (newMap, snd acc && checkFilled)
+            )
+            (unTestSCHM hM, True)
+            (getNonEmpty elems)
 ```
