@@ -1,5 +1,5 @@
 module LinearInterpolation (
-    linInter
+    linInterOnePoint
 ) where
 
 import PointWindow
@@ -14,6 +14,3 @@ linInterOnePoint w x = let
     x1 = fst point1
     x0 = fst point0
     in y0 + (y1 - y0) / (x1 - x0) * (x - x0)
-
-linInter :: PointWindow -> [Double] -> [Point]
-linInter w xs = zip xs $ map (linInterOnePoint w) xs

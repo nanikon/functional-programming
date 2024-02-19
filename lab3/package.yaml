@@ -35,6 +35,8 @@ ghc-options:
 
 library:
   source-dirs: src
+  dependencies:
+  - stable-memo
 
 executables:
   lab3-exe:

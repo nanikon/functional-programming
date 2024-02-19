@@ -4,4 +4,4 @@ import Lib
 import Data.Functor
 
 main :: IO ()
-main = getContents >>= putStr . take 4 .split
+main = getContents >>= putStr . take 4
