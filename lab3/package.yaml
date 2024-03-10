@@ -37,6 +37,8 @@ library:
   source-dirs: src
   dependencies:
   - stable-memo
+  - optparse-applicative
+  - base >= 4.7
 
 executables:
   lab3-exe:

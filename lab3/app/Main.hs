@@ -1,7 +1,11 @@
 module Main (main) where
 
 import Lib
-import Data.Functor
+import CmdParams
 
 main :: IO ()
-main = getContents >>= putStr . take 4
+main = cmdLineParser >>= work
+
+work :: Params -> IO()
+work params = do
+    
