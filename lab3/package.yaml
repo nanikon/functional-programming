@@ -40,6 +40,7 @@ library:
   - optparse-applicative
   - base >= 4.7
   - split
+  - fmt
 
 executables:
   lab3-exe:
@@ -63,3 +64,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - lab3
+    - HUnit
+    - QuickCheck
+    - tasty
+    - tasty-hunit
+    - tasty-quickcheck

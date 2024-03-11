@@ -4,9 +4,11 @@ module PointWindow (
     changeWindow,
     generateXs,
     parsePoint,
+    formatPointList,
 ) where
 
 import Data.List.Split
+import Fmt
 
 type Point = (Double, Double)
 
@@ -28,7 +30,10 @@ generateXs w@(p : _) n =
      in
         scanl (+) (minX + period) (replicate (n - 1) period)
 
-parsePoint :: String -> Point -- rewrite on read?
+parsePoint :: String -> Point
 parsePoint s =
     let numbers = splitOn ";" s
      in (read (head numbers), read (numbers !! 1))
+
+formatPointList :: [Point] -> Builder
+formatPointList ps = foldl1 (\a b -> a +| ", " |+ b) (map tupleF ps)
