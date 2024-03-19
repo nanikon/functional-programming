@@ -4,6 +4,7 @@ module Lib (
     resultParse,
     Parser,
     runParser,
+    choice,
 ) where
 
 newtype ParseError = ParseError String
@@ -16,8 +17,7 @@ data ParseReturn a
     | Error ParseError
 
 newtype Parser a = Parser
-    { runParser :: String -> ParseReturn a
-    }
+    {runParser :: String -> ParseReturn a}
 
 errorEOF :: ParseReturn a
 errorEOF = Error $ ParseError "Unexpected EoF"
@@ -36,3 +36,21 @@ satisfy f = Parser check
 
 anyChar :: Parser Char
 anyChar = satisfy (const True)
+
+choice :: Parser a -> Parser a -> Parser a
+choice m n =
+    Parser
+        ( \s -> case runParser m s of
+            Error _ -> runParser n s
+            SucRead toks res -> SucRead toks res
+        )
+
+bind :: (Semigroup a) => Parser a -> Parser a -> Parser a
+bind n m =
+    Parser
+        ( \s -> case runParser m s of
+            Error err -> Error err
+            SucRead toks res -> case runParser n toks of
+                Error err' -> Error err'
+                SucRead toks' res' -> SucRead toks' (res <> res')
+        )
