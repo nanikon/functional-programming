@@ -77,8 +77,21 @@ applyContext f p = Parser $ \c s -> case runParser p c s of
     ParseError err -> ParseError err
     SucRead toks res -> SucRead toks (f c res)
 
--- manyUntil :: (Char -> Bool) -> Parser a b -> Parser a [b]
--- manyUntil f p = Parser $ \c s -> let
---    walk [] _ = SucRead "" s
---    walk tts@(t:ts) rs = if f t then walk ts else SucRead tts rs
---    in
+manyUntil :: (b -> d -> d) -> d -> Parser a b -> Parser a d
+manyUntil f startAcc p = Parser $ \c s ->
+    let
+        walk "" rs = SucRead "" rs
+        walk tts@(t : ts) rs = case runParser p c tts of
+            ParseError _ -> SucRead tts rs
+            SucRead _ res -> walk ts (f res rs)
+     in
+        walk s startAcc
+
+many :: Parser a Char -> Parser a String
+many = manyUntil (:) ""
+
+many1 :: Parser Char Char -> Parser Char String
+many1 p = bind p (applyContext (:) (many p))
+
+skipMany :: Parser a Char -> Parser a ()
+skipMany = manyUntil (\_ _ -> ()) ()

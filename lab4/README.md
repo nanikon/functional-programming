@@ -85,10 +85,33 @@ bind n m = Parser $ \context input ->
             SucRead toks res -> runParser m res toks
 ```
 
-С помощью этих функций мне удалось собрать парсер посложнее - который сравнивает начало переданной и входной строки. Если переданная строка полностью помещается в начало входной - то парсер возвращает ок.
+С помощью этих комбинаторов мне удалось собрать парсер посложнее - который сравнивает начало переданной и входной строки. Если переданная строка полностью помещается в начало входной - то парсер возвращает ок.
 
 ```haskell
 stringPars :: String -> Parser u String
 stringPars [] = Parser $ \c s -> SucRead s ""
 stringPars (t : ts) = reverse <$> foldl (\acc el -> bind acc (satisfyAcc (== el))) (fmap (: []) (satisfy (== t))) ts
+```
+
+Также с помощью них я ещё написала комбинаторы для множественного применения одного парсера - many (0 или много), many1 (1 или много) и skipMany (пропускающий 0 или более символов).
+
+```haskell
+manyUntil :: (b -> d -> d) -> d -> Parser a b -> Parser a d
+manyUntil f startAcc p = Parser $ \c s ->
+    let
+        walk "" rs = SucRead "" rs
+        walk tts@(t : ts) rs = case runParser p c tts of
+            ParseError _ -> SucRead tts rs
+            SucRead _ res -> walk ts (f res rs)
+     in
+        walk s startAcc
+
+many :: Parser a Char -> Parser a String
+many = manyUntil (:) ""
+
+many1 :: Parser Char Char -> Parser Char String
+many1 p = bind p (applyContext (:) (many p))
+
+skipMany :: Parser a Char -> Parser a ()
+skipMany = manyUntil (\_ _ -> ()) ()
 ```
