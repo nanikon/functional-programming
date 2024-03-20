@@ -3,7 +3,7 @@ module Lib (
     ParseReturn,
     resultParse,
     Parser,
-    runParser,
+    parse,
     choice,
 ) where
 
@@ -16,8 +16,26 @@ data ParseReturn a
         }
     | Error ParseError
 
-newtype Parser a = Parser
-    {runParser :: String -> ParseReturn a}
+newtype Parser a b = Parser {runParser :: a -> String -> ParseReturn b}
+
+parse :: Parser () a -> (String -> ParseReturn a) -- parser - to start
+parse p = runParser p ()
+
+bind :: Parser a b -> Parser b c -> Parser a c
+bind n m = Parser $ \context input ->
+    let res1 = runParser n context input
+     in case res1 of
+            Error err -> Error err
+            SucRead toks res -> runParser m res toks
+
+satisfy :: (Char -> Bool) -> Parser u Char
+satisfy f = Parser check
+  where
+    check _ [] = errorEOF
+    check _ tts@(tok : toks) =
+        if f tok
+            then SucRead toks tok
+            else errorToken tok
 
 errorEOF :: ParseReturn a
 errorEOF = Error $ ParseError "Unexpected EoF"
@@ -25,32 +43,18 @@ errorEOF = Error $ ParseError "Unexpected EoF"
 errorToken :: (Show b) => b -> ParseReturn a
 errorToken c = Error $ ParseError $ "Unexpected " ++ show c
 
-satisfy :: (Char -> Bool) -> Parser Char
-satisfy f = Parser check
-  where
-    check [] = errorEOF
-    check tts@(tok : toks) =
-        if f tok
-            then SucRead toks tok
-            else errorToken tok
-
-anyChar :: Parser Char
+anyChar :: Parser u Char
 anyChar = satisfy (const True)
 
-choice :: Parser a -> Parser a -> Parser a
+choice :: Parser a b -> Parser a b -> Parser a b
 choice m n =
     Parser
-        ( \s -> case runParser m s of
-            Error _ -> runParser n s
+        ( \context s -> case runParser m context s of
+            Error _ -> runParser n context s
             SucRead toks res -> SucRead toks res
         )
 
-bind :: (Semigroup a) => Parser a -> Parser a -> Parser a
-bind n m =
-    Parser
-        ( \s -> case runParser m s of
-            Error err -> Error err
-            SucRead toks res -> case runParser n toks of
-                Error err' -> Error err'
-                SucRead toks' res' -> SucRead toks' (res <> res')
-        )
+-- func1 :: (a -> b) -> Parser a -> Parser b -- functor
+-- func1 f p1 = Parser $ \s -> case runParser p1 s of
+--    Error err -> Error err
+--    SucRead toks res -> SucRead toks (f res)
